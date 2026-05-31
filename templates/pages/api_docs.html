@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}API Docs — API Test Suite{% endblock %}
+{% block page_title %}API Docs{% endblock %}
+{% block topbar_actions %}
+  <span class="text-muted" style="font-size:13px">env: <strong>{{ env_name or "—" }}</strong> · {{ total }} endpoint{{ 's' if total != 1 }}</span>
+{% endblock %}
+
+{% block content %}
+
+{% if not groups %}
+<div class="empty-state">
+  <div class="empty-icon">◇</div>
+  <p>No test cases defined yet. <a href="/tests/new">Create one →</a></p>
+</div>
+{% else %}
+
+{% for group, tests in groups.items() %}
+<div class="doc-group">
+  <div class="doc-group-header">
+    <span class="doc-group-name">{{ group }}</span>
+    <span class="doc-group-count">{{ tests|length }} endpoint{{ 's' if tests|length != 1 }}</span>
+  </div>
+
+  {% for t in tests %}
+  <div class="doc-card" id="endpoint-{{ t.id }}">
+    <div class="doc-card-header" onclick="toggleDoc('body-{{ t.id }}')">
+      <span class="method-badge method-{{ t.method.lower() }}">{{ t.method }}</span>
+      <code class="doc-path">{{ t.path }}</code>
+      <span class="doc-name">{{ t.name }}</span>
+      {% if t.description %}
+      <span class="doc-desc">{{ t.description }}</span>
+      {% endif %}
+      <span class="doc-status-badge">{{ t.expected_status }}</span>
+      <span class="doc-chevron">›</span>
+    </div>
+
+    <div class="doc-card-body" id="body-{{ t.id }}" style="display:none">
+      <div class="doc-body-grid">
+
+        <div class="doc-section">
+          <div class="doc-section-label">Full URL</div>
+          <code class="doc-full-url">{{ t.full_url or t.path }}</code>
+        </div>
+
+        {% if t.headers_pretty and t.headers_pretty != '{}' and t.headers_pretty != 'null' %}
+        <div class="doc-section">
+          <div class="doc-section-label">Request Headers</div>
+          <pre class="doc-code">{{ t.headers_pretty }}</pre>
+        </div>
+        {% endif %}
+
+        {% if t.body_pretty %}
+        <div class="doc-section">
+          <div class="doc-section-label">Request Body</div>
+          <pre class="doc-code">{{ t.body_pretty }}</pre>
+        </div>
+        {% endif %}
+
+        <div class="doc-section">
+          <div class="doc-section-label">Expected Response</div>
+          <div class="doc-assertions">
+            <span class="doc-assert-item">Status <strong>{{ t.expected_status }}</strong></span>
+            {% if t.expected_body %}
+            <span class="doc-assert-item">Body contains <code>{{ t.expected_body }}</code></span>
+            {% endif %}
+            {% if t.assertions_pretty and t.assertions_pretty != '[]' and t.assertions_pretty != 'null' %}
+            <pre class="doc-code" style="margin-top:8px">{{ t.assertions_pretty }}</pre>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if t.tags_list %}
+        <div class="doc-section">
+          <div class="doc-section-label">Tags</div>
+          <div class="doc-tags">
+            {% for tag in t.tags_list %}<span class="tag">{{ tag }}</span>{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleDoc(id) {
+  const el = document.getElementById(id);
+  const card = el.parentElement;
+  const chevron = card.querySelector('.doc-chevron');
+  const open = el.style.display === 'none';
+  el.style.display = open ? '' : 'none';
+  chevron.style.transform = open ? 'rotate(90deg)' : '';
+}
+</script>
+{% endblock %}

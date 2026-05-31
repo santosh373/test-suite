@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — API Test Suite{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block topbar_actions %}
+  <a href="/runs/new" class="btn btn-primary">▷ New Run</a>
+{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value">{{ total_tests }}</div>
+    <div class="stat-label">Test Cases</div>
+    <a href="/tests/" class="stat-link">View all →</a>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ total_runs }}</div>
+    <div class="stat-label">Total Runs</div>
+    <a href="/runs/" class="stat-link">View all →</a>
+  </div>
+  <div class="stat-card {% if mapping_count > 0 %}stat-success{% endif %}">
+    <div class="stat-value">{{ mapping_count }}</div>
+    <div class="stat-label">Mappings</div>
+    <a href="/mapping/file" class="stat-link">Edit mapping →</a>
+  </div>
+  <div class="stat-card {% if pass_rate >= 90 %}stat-success{% elif pass_rate >= 70 %}stat-warn{% else %}stat-fail{% endif %}">
+    <div class="stat-value">{{ pass_rate }}%</div>
+    <div class="stat-label">Pass Rate</div>
+    <div class="stat-sub">{{ passed }} passed · {{ failed }} failed</div>
+  </div>
+</div>
+
+{% if chain %}
+<div class="section-header" style="margin-top:8px">
+  <h2>Functional Chain</h2>
+  <a href="/mapping/file" class="btn btn-sm">Edit mapping.py →</a>
+</div>
+<div class="chain-flow">
+  {% for step in chain %}
+  <div class="chain-step">
+    <div class="chain-step-name">{{ step.test }}</div>
+    {% if step.extract %}
+    <div class="chain-badges">
+      {% for var, path in step.extract.items() %}
+      <span class="chain-extract">extract <code>{{ var }}</code> ← <code>{{ path }}</code></span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if step.inject %}
+    <div class="chain-badges">
+      {% for field, tpl in step.inject.items() %}
+      <span class="chain-inject">inject <code>{{ field }}</code> = <code>{{ tpl }}</code></span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% if not loop.last %}<div class="chain-arrow">↓</div>{% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="section-header">
+  <h2>Recent Runs</h2>
+  <a href="/runs/new" class="btn btn-sm">+ New Run</a>
+</div>
+
+<div class="table-wrap">
+  {% if recent_runs %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Run</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Results</th>
+        <th>Started</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for run in recent_runs %}
+      <tr>
+        <td><a href="/runs/{{ run.id }}" class="link-mono">{{ run.run_name or "Run #" + run.id|string }}</a></td>
+        <td><span class="badge badge-type-{{ run.test_type }}">{{ run.test_type }}</span></td>
+        <td><span class="status-dot status-{{ run.status }}">{{ run.status }}</span></td>
+        <td>
+          {% if run.total_results %}
+            <span class="pass-bar">
+              <span class="pass-fill" style="width:{{ (run.passed_count / run.total_results * 100)|int }}%"></span>
+            </span>
+            <span class="pass-text">{{ run.passed_count }}/{{ run.total_results }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-muted mono-sm">{{ run.started_at[:16].replace("T", " ") if run.started_at else "—" }}</td>
+        <td><a href="/runs/{{ run.id }}" class="btn btn-sm">View</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">◉</div>
+    <p>No runs yet. <a href="/runs/new">Start your first run →</a></p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="quick-actions">
+  <h2>Quick Start</h2>
+  <div class="quick-grid">
+    <a href="/tests/new" class="quick-card">
+      <span class="quick-icon">◇</span>
+      <strong>1. Create Test Cases</strong>
+      <span>Add entries to <code>testcases.py</code> and restart</span>
+    </a>
+    <a href="/runs/new?type=functional" class="quick-card">
+      <span class="quick-icon">▷</span>
+      <strong>2. Functional Run</strong>
+      <span>Run all test cases in sequence, validate responses</span>
+    </a>
+    <a href="/runs/new?type=performance" class="quick-card">
+      <span class="quick-icon">⚡</span>
+      <strong>3. Performance Run</strong>
+      <span>Pick a test, set virtual users, measure latency &amp; RPS</span>
+    </a>
+    <a href="/runs/" class="quick-card">
+      <span class="quick-icon">◈</span>
+      <strong>4. View Results</strong>
+      <span>Inspect metrics, latency, and pass rates</span>
+    </a>
+  </div>
+</div>
+{% endblock %}

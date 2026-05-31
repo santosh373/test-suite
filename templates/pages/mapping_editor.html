@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}{% if is_new %}New Mapping{% else %}Edit {{ filename }}{% endif %} — API Test Suite{% endblock %}
+{% block page_title %}{% if is_new %}New Mapping{% else %}{{ filename }}{% endif %}{% endblock %}
+{% block topbar_actions %}
+  <a href="/mapping" class="btn btn-sm">← All Mappings</a>
+{% endblock %}
+
+{% block content %}
+{% if saved %}
+<div class="alert alert-ok" id="saved-banner">Saved — mapping updated.</div>
+{% endif %}
+
+<div class="form-grid" style="gap:24px">
+
+  <!-- Editor -->
+  <div>
+    {% if is_new %}
+    <form method="post" action="/mapping/new" id="file-form">
+      <div class="field" style="margin-bottom:14px">
+        <label>Filename <span class="required">*</span></label>
+        <input type="text" name="filename" required placeholder="e.g. order_flow.py"
+               style="font-family:'JetBrains Mono',monospace">
+        <div class="field-hint">Will be saved as <code>mappings/&lt;filename&gt;.py</code></div>
+      </div>
+    {% else %}
+    <form method="post" action="/mapping/edit/{{ filename }}" id="file-form">
+    {% endif %}
+
+      <div class="file-editor-wrap">
+        <div class="file-editor-meta">
+          <span class="file-path-label">{% if is_new %}mappings/&lt;filename&gt;.py{% else %}mappings/{{ filename }}{% endif %}</span>
+          <span class="text-muted" style="font-size:12px">Ctrl+S to save · Tab inserts 4 spaces</span>
+        </div>
+        <div class="mapping-legend">
+          <div class="legend-item"><span class="legend-key">test</span> — test case name</div>
+          <div class="legend-item"><span class="legend-key">extract</span> — <code>"var": "dot.path"</code> from response</div>
+          <div class="legend-item"><span class="legend-key">inject</span> — <code>"field": "value with {var}"</code></div>
+        </div>
+        <textarea name="content" id="code-editor" class="file-editor-textarea"
+                  spellcheck="false" autocorrect="off">{{ content }}</textarea>
+        <div class="file-editor-actions">
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Chain preview table -->
+  {% if not is_new and chain %}
+  <div>
+    <div class="form-section">
+      <h3 class="form-section-title">Chain Preview <span style="font-size:11px;color:#58a6ff;font-weight:400;margin-left:6px">{{ chain|length }} step{{ 's' if chain|length != 1 }}</span></h3>
+      <div class="table-wrap" style="margin-bottom:0">
+        <table class="data-table">
+          <thead>
+            <tr><th>#</th><th>Test</th><th>Extract</th><th>Inject</th></tr>
+          </thead>
+          <tbody>
+          {% for step in chain %}
+          <tr>
+            <td class="text-muted mono-sm">{{ loop.index }}</td>
+            <td><strong>{{ step.test }}</strong></td>
+            <td>
+              {% if step.extract %}
+              {% for var, path in step.extract.items() %}
+              <div class="chain-extract" style="margin-bottom:3px"><code>{{ var }}</code> ← <code>{{ path }}</code></div>
+              {% endfor %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if step.inject %}
+              {% for field, tpl in step.inject.items() %}
+              <div class="chain-inject" style="margin-bottom:3px"><code>{{ field }}</code> = <code style="word-break:break-all">{{ tpl }}</code></div>
+              {% endfor %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    document.getElementById('file-form').submit();
+  }
+});
+document.getElementById('code-editor').addEventListener('keydown', function(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = this.selectionStart;
+    this.value = this.value.substring(0, s) + '    ' + this.value.substring(this.selectionEnd);
+    this.selectionStart = this.selectionEnd = s + 4;
+  }
+});
+{% if saved %}
+setTimeout(() => {
+  const b = document.getElementById('saved-banner');
+  if (b) { b.style.transition='opacity 0.5s'; b.style.opacity='0'; setTimeout(()=>b.remove(), 500); }
+}, 3000);
+{% endif %}
+</script>
+{% endblock %}

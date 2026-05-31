@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}{{ run.run_name }} — Run Results{% endblock %}
+{% block page_title %}{{ run.run_name or "Run #" + run.id|string }}{% endblock %}
+{% block topbar_actions %}
+  <a href="/runs/" class="btn btn-sm">← History</a>
+  <form method="post" action="/runs/{{ run.id }}/delete" class="inline-form"
+        onsubmit="return confirm('Delete this run?')">
+    <button class="btn btn-sm btn-danger">Delete</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+
+{% if run.status == 'running' or run.status == 'pending' %}
+<div class="alert alert-info running-alert">
+  <span class="spinner"></span>
+  Run is in progress — <a href="" onclick="location.reload();return false;">refresh to update</a>
+</div>
+{% endif %}
+
+<div class="run-meta-bar">
+  <div class="run-meta-item">
+    <span class="meta-label">Environment</span>
+    <span class="tag">{{ env_name or "—" }}</span>
+  </div>
+  {% if mapping_name %}
+  <div class="run-meta-item">
+    <span class="meta-label">Mapping</span>
+    <span class="tag">{{ mapping_name }}</span>
+  </div>
+  {% endif %}
+  <div class="run-meta-item">
+    <span class="meta-label">Type</span>
+    <span class="badge badge-type-{{ run.test_type }}">{{ run.test_type }}</span>
+  </div>
+  <div class="run-meta-item">
+    <span class="meta-label">Status</span>
+    <span class="status-dot status-{{ run.status }}">{{ run.status }}</span>
+  </div>
+  <div class="run-meta-item">
+    <span class="meta-label">Started</span>
+    <span class="mono-sm">{{ run.started_at[:16].replace("T"," ") if run.started_at else "—" }}</span>
+  </div>
+  <div class="run-meta-item">
+    <span class="meta-label">Finished</span>
+    <span class="mono-sm">{{ run.finished_at[:16].replace("T"," ") if run.finished_at else "—" }}</span>
+  </div>
+</div>
+
+<div class="stats-grid stats-grid-sm">
+  <div class="stat-card">
+    <div class="stat-value">{{ total }}</div>
+    <div class="stat-label">Total Tests</div>
+  </div>
+  <div class="stat-card stat-success">
+    <div class="stat-value">{{ passed }}</div>
+    <div class="stat-label">Passed</div>
+  </div>
+  <div class="stat-card {% if failed > 0 %}stat-fail{% endif %}">
+    <div class="stat-value">{{ failed }}</div>
+    <div class="stat-label">Failed</div>
+  </div>
+  <div class="stat-card {% if pass_rate >= 90 %}stat-success{% elif pass_rate >= 70 %}stat-warn{% else %}stat-fail{% endif %}">
+    <div class="stat-value">{{ pass_rate }}%</div>
+    <div class="stat-label">Pass Rate</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ avg_duration }}ms</div>
+    <div class="stat-label">Avg Duration</div>
+  </div>
+</div>
+
+<div class="section-header">
+  <h2>Test Results</h2>
+</div>
+
+<div class="results-table-wrap">
+  {% if results %}
+  <table class="data-table results-table">
+    <thead>
+      <tr>
+        <th>Test</th>
+        <th>Method</th>
+        <th>Path</th>
+        <th>Status</th>
+        <th>HTTP</th>
+        <th>Duration</th>
+        {% if run.test_type == 'performance' %}
+        <th>p50</th>
+        <th>p95</th>
+        <th>p99</th>
+        <th>RPS</th>
+        <th>Err%</th>
+        {% else %}
+        <th>Assertions</th>
+        {% endif %}
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in results %}
+      <tr class="result-row-{{ r.status }}">
+        <td><a href="/tests/{{ r.test_case_id }}" class="link-text">{{ r.test_name }}</a></td>
+        <td><span class="method-badge method-{{ r.method.lower() }} badge-xs">{{ r.method }}</span></td>
+        <td><code class="path-xs">{{ r.path }}</code></td>
+        <td><span class="status-dot status-{{ r.status }}">{{ r.status }}</span></td>
+        <td class="mono-sm">{{ r.status_code or "—" }}</td>
+        <td class="mono-sm">{{ r.duration_ms }}ms</td>
+        {% if run.test_type == 'performance' %}
+        <td class="mono-sm">{{ r.p50_ms or "—" }}ms</td>
+        <td class="mono-sm">{{ r.p95_ms or "—" }}ms</td>
+        <td class="mono-sm">{{ r.p99_ms or "—" }}ms</td>
+        <td class="mono-sm">{{ r.rps or "—" }}</td>
+        <td class="mono-sm {% if r.error_rate and r.error_rate > 5 %}text-danger{% endif %}">{{ r.error_rate or "—" }}%</td>
+        {% else %}
+        <td class="mono-sm">
+          <span class="assertions-badge">
+            ✓ {{ r.assertions_passed }} / ✗ {{ r.assertions_failed }}
+          </span>
+        </td>
+        {% endif %}
+        <td>
+          <button class="btn btn-sm" onclick="toggleDetail('detail-{{ loop.index }}')">Detail</button>
+        </td>
+      </tr>
+      <tr id="detail-{{ loop.index }}" class="detail-row" style="display:none">
+        <td colspan="{% if run.test_type == 'performance' %}12{% else %}9{% endif %}">
+          <div class="detail-expand">
+            {% if r.error %}
+            <div class="detail-section">
+              <div class="detail-section-label text-danger">Error</div>
+              <pre class="code-block code-block-sm">{{ r.error }}</pre>
+            </div>
+            {% endif %}
+            {% if r.response_body %}
+            <div class="detail-section">
+              <div class="detail-section-label">Response Body</div>
+              <pre class="code-block code-block-sm">{{ r.response_body[:2000] }}</pre>
+            </div>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <p>No results yet — the run may still be initializing.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleDetail(id) {
+  const row = document.getElementById(id);
+  row.style.display = row.style.display === 'none' ? '' : 'none';
+}
+{% if run.status == 'running' or run.status == 'pending' %}
+setTimeout(() => location.reload(), 3000);
+{% endif %}
+</script>
+{% endblock %}

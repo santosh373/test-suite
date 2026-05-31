@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Mappings — API Test Suite{% endblock %}
+{% block page_title %}Mappings{% endblock %}
+{% block topbar_actions %}
+  <a href="/mapping/new" class="btn btn-primary">+ New Mapping</a>
+{% endblock %}
+
+{% block content %}
+{% if saved %}
+<div class="alert alert-ok" id="saved-banner">Mapping saved.</div>
+{% endif %}
+
+<div class="table-wrap">
+  {% if mappings %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Mapping Name</th>
+        <th>Steps</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for m in mappings %}
+    <tr>
+      <td><code class="path-code">{{ m.filename }}</code></td>
+      <td><strong>{{ m.mapping_name }}</strong></td>
+      <td class="text-muted">{{ m.step_count }} step{{ 's' if m.step_count != 1 }}</td>
+      <td class="action-cell">
+        <a href="/mapping/edit/{{ m.filename }}" class="btn btn-sm">Edit</a>
+        <form method="post" action="/mapping/delete/{{ m.filename }}" class="inline-form"
+              onsubmit="return confirm('Delete {{ m.filename }}?')">
+          <button class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">◇</div>
+    <p>No mappings yet. <a href="/mapping/new">Create one →</a></p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

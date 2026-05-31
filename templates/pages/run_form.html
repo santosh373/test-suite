@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}{{ run_type|title }} Run — API Test Suite{% endblock %}
+{% block page_title %}{{ run_type|title }} Run{% endblock %}
+{% block topbar_actions %}
+  <a href="/runs/" class="btn btn-sm">← History</a>
+{% endblock %}
+
+{% block content %}
+{% if not tests %}
+<div class="alert alert-warn">
+  No test cases found. Add entries to <code>testcases.py</code> and restart the server.
+</div>
+{% endif %}
+
+<form method="post" action="/runs/new" id="run-form">
+  <input type="hidden" name="test_type" value="{{ run_type }}">
+
+  <div class="run-form-grid">
+    <div class="run-form-main">
+
+      <div class="form-section">
+        <h3 class="form-section-title">Run Configuration</h3>
+        <div class="field-row">
+          <div class="field">
+            <label>Run Name <span class="required">*</span></label>
+            <input type="text" name="run_name" required placeholder="e.g. Sprint 42 Smoke Tests">
+          </div>
+          {% if run_type == 'functional' %}
+          <div class="field">
+            <label>Mapping</label>
+            {% if mappings %}
+            <select name="mapping_file" id="mapping-select" onchange="onMappingChange()">
+              {% for m in mappings %}
+              <option value="{{ m.filename }}" data-name="{{ m.mapping_name }}" data-steps="{{ m.step_count }}">
+                {{ m.mapping_name }} ({{ m.filename }})
+              </option>
+              {% endfor %}
+            </select>
+            <div class="field-hint"><a href="/mapping" style="color:#58a6ff">Manage mappings →</a></div>
+            {% else %}
+            <div class="env-pill">
+              <span class="text-muted" style="font-size:12px">No mappings — <a href="/mapping/new" style="color:#58a6ff">create one</a></span>
+            </div>
+            <input type="hidden" name="mapping_file" value="">
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if run_type == 'functional' %}
+      <div class="form-section">
+        <h3 class="form-section-title">
+          Mapping Steps
+          <span id="chain-count" style="font-size:11px;color:#58a6ff;font-weight:400;margin-left:8px"></span>
+        </h3>
+        <div class="table-wrap" style="margin-bottom:0">
+          <table class="data-table">
+            <thead>
+              <tr><th>#</th><th>Test Name</th><th>Extract</th><th>Inject</th></tr>
+            </thead>
+            <tbody id="chain-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      {% else %}
+      <div class="form-section">
+        <h3 class="form-section-title">Performance Target</h3>
+        <div class="field">
+          <label>Test Case <span class="required">*</span></label>
+          <select name="test_case_id" id="perf-test-select">
+            <option value="">— select a test case —</option>
+            {% for t in tests %}
+            <option value="{{ t.id }}">{{ t.name }} — {{ t.method }} {{ t.path }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Virtual Users (concurrent)</label>
+          <input type="number" name="count" id="perf-count" min="1" max="500" value="10">
+          <div class="field-hint">Number of concurrent users hitting the endpoint simultaneously.</div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <div class="run-form-side">
+      <div class="form-section run-summary-panel">
+        <h3 class="form-section-title">Summary</h3>
+        {% if run_type == 'functional' %}
+        <div class="summary-item" id="summary-mapping-name">◇ {{ mapping_name or "—" }}</div>
+        <div class="summary-item" id="summary-steps">▷ — steps</div>
+        <div class="summary-item">◈ Runs sequentially</div>
+        {% else %}
+        <div class="summary-item" id="summary-perf-test">◇ No test selected</div>
+        <div class="summary-item" id="summary-perf-count">◉ 10 virtual users</div>
+        {% endif %}
+        {% if env_name %}
+        <div class="summary-item">◎ env: {{ env_name }}</div>
+        {% endif %}
+        <div class="form-actions" style="margin-top:1.5rem">
+          <button type="submit" class="btn btn-primary btn-full" onclick="return prepareSubmit()">
+            ▷ Execute Run
+          </button>
+        </div>
+      </div>
+
+      {% if run_type == 'functional' %}
+      <div class="info-box">
+        <strong>Functional</strong> — Every test case runs once in order. Each request is validated against its expected status code, body, and assertions.
+      </div>
+      {% else %}
+      <div class="info-box info-box-perf">
+        <strong>Performance</strong> — Spawns concurrent virtual users for the configured duration. Reports p50/p95/p99 latency, RPS, and error rate.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+{% if run_type == 'performance' %}
+<script>
+document.getElementById('perf-test-select').addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  document.getElementById('summary-perf-test').textContent =
+    opt.value ? '◇ ' + opt.text.split(' — ')[0] : '◇ No test selected';
+});
+document.getElementById('perf-count').addEventListener('input', function() {
+  document.getElementById('summary-perf-count').textContent = '◉ ' + (this.value || 1) + ' virtual users';
+});
+function prepareSubmit() {
+  const sel = document.getElementById('perf-test-select');
+  if (!sel.value) { alert('Please select a test case.'); return false; }
+  return true;
+}
+</script>
+
+{% elif run_type == 'functional' %}
+<script>
+const ALL_CHAINS = {{ all_chains_json | safe }};
+
+function renderChain(filename) {
+  const chain = ALL_CHAINS[filename] || [];
+  const tbody = document.getElementById('chain-tbody');
+  const count = document.getElementById('chain-count');
+  const summaryName = document.getElementById('summary-mapping-name');
+  const summarySteps = document.getElementById('summary-steps');
+
+  // mapping name from the select option
+  const sel = document.getElementById('mapping-select');
+  const opt = sel ? sel.options[sel.selectedIndex] : null;
+  const mName = opt ? opt.dataset.name : '';
+
+  count.textContent = chain.length + ' step' + (chain.length !== 1 ? 's' : '');
+  summaryName.textContent = '◇ ' + (mName || filename);
+  summarySteps.textContent = '▷ ' + chain.length + ' step' + (chain.length !== 1 ? 's' : '');
+
+  tbody.innerHTML = chain.map((step, i) => {
+    const extracts = Object.entries(step.extract || {})
+      .map(([v, p]) => `<div class="chain-extract" style="margin-bottom:3px"><code>${v}</code> ← <code>${p}</code></div>`)
+      .join('') || '<span class="text-muted">—</span>';
+    const injects = Object.entries(step.inject || {})
+      .map(([f, t]) => `<div class="chain-inject" style="margin-bottom:3px"><code>${f}</code> = <code style="word-break:break-all">${t}</code></div>`)
+      .join('') || '<span class="text-muted">—</span>';
+    return `<tr>
+      <td class="text-muted mono-sm">${i+1}</td>
+      <td><strong>${step.test}</strong></td>
+      <td>${extracts}</td>
+      <td>${injects}</td>
+    </tr>`;
+  }).join('');
+}
+
+function onMappingChange() {
+  const sel = document.getElementById('mapping-select');
+  if (sel) renderChain(sel.value);
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  const sel = document.getElementById('mapping-select');
+  if (sel) renderChain(sel.value);
+});
+</script>
+{% endif %}
+{% endblock %}

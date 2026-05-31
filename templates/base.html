@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}API Test Suite{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <span class="brand-icon">⬡</span>
+    <span class="brand-name">TestSuite</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/" class="nav-item {% if page == 'dashboard' %}active{% endif %}">
+      <span class="nav-icon">◈</span> Dashboard
+    </a>
+    <a href="/tests/" class="nav-item {% if page == 'tests' %}active{% endif %}">
+      <span class="nav-icon">◇</span> Test Cases
+    </a>
+    <a href="/runs/" class="nav-item {% if page == 'runs' %}active{% endif %}">
+      <span class="nav-icon">◉</span> Run History
+    </a>
+    <div class="nav-divider"></div>
+    <div class="nav-label">Quick Actions</div>
+
+    <a href="/tests/new" class="nav-item {% if page == 'tests-new' %}active{% endif %}">
+      <span class="nav-icon">＋</span> Create Testcase
+    </a>
+    <a href="/runs/new?type=functional" class="nav-item {% if page == 'run-functional' %}active{% endif %}">
+      <span class="nav-icon">▷</span> Functional
+    </a>
+    <a href="/runs/new?type=performance" class="nav-item {% if page == 'run-performance' %}active{% endif %}">
+      <span class="nav-icon">⚡</span> Performance
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="nav-user">◎ admin</span>
+    <a href="/logout" class="logout-btn">Logout</a>
+  </div>
+</aside>
+
+<main class="main-content">
+  <div class="topbar">
+    <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+    <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
+  </div>
+  <div class="content-area">
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+<script src="/static/js/main.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

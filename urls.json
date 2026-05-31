@@ -1,0 +1,17 @@
+{
+  "local": {
+    "db":   "http://localhost:8080",
+    "core": "http://localhost:8080",
+    "auth": "http://localhost:8080"
+  },
+  "lab": {
+    "db":   "https://api.example.com",
+    "core": "https://api.example.com",
+    "auth": "https://api.example.com"
+  },
+  "staging": {
+    "db":   "https://staging-api.example.com",
+    "core": "https://staging-api.example.com",
+    "auth": "https://staging-api.example.com"
+  }
+}

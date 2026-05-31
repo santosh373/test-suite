@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Run History — API Test Suite{% endblock %}
+{% block page_title %}Run History{% endblock %}
+{% block topbar_actions %}
+  <a href="/runs/new" class="btn btn-primary">▷ New Run</a>
+{% endblock %}
+
+{% block content %}
+<div class="table-wrap">
+  {% if runs %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Run Name</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Pass Rate</th>
+        <th>Results</th>
+        <th>Started</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in runs %}
+      <tr>
+        <td><a href="/runs/{{ r.id }}" class="link-mono">{{ r.run_name or "Run #" + r.id|string }}</a></td>
+        <td><span class="badge badge-type-{{ r.test_type }}">{{ r.test_type }}</span></td>
+        <td><span class="status-dot status-{{ r.status }}">{{ r.status }}</span></td>
+        <td>
+          {% if r.total and r.total > 0 %}
+            {% set pct = (r.passed / r.total * 100)|int %}
+            <div class="pass-bar-wrap">
+              <span class="pass-bar"><span class="pass-fill" style="width:{{ pct }}%"></span></span>
+              <span class="pass-pct">{{ pct }}%</span>
+            </div>
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-muted">{{ r.passed or 0 }}/{{ r.total or 0 }}</td>
+        <td class="text-muted mono-sm">{{ r.started_at[:16].replace("T"," ") if r.started_at else "—" }}</td>
+        <td class="action-cell">
+          <a href="/runs/{{ r.id }}" class="btn btn-sm">View</a>
+          <form method="post" action="/runs/{{ r.id }}/delete" class="inline-form"
+                onsubmit="return confirm('Delete this run and all its results?')">
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">◉</div>
+    <p>No runs yet. <a href="/runs/new">Start your first run →</a></p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

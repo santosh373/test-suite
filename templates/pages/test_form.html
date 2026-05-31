@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{% if test %}Edit Test Case{% else %}Create / Update Test Case{% endif %} — API Test Suite{% endblock %}
+{% block page_title %}{% if test %}Edit: {{ test.name }}{% else %}Create / Update Test Case{% endif %}{% endblock %}
+{% block topbar_actions %}
+  <a href="/tests/" class="btn btn-sm">← Back</a>
+{% endblock %}
+
+{% block content %}
+
+{% if not test %}
+<div class="upsert-hint">
+  Enter a test case name. If a test with that name already exists it will be updated — otherwise a new one is created.
+</div>
+{% endif %}
+
+<form method="post" action="/tests/save" class="test-form" id="test-form">
+  <input type="hidden" name="test_id" value="{{ test.id if test else '' }}">
+  <input type="hidden" name="test_type" value="functional">
+
+  <div class="form-grid">
+
+    <!-- Left column -->
+    <div class="form-col">
+      <div class="form-section">
+        <h3 class="form-section-title">Basic Info</h3>
+        <div class="field">
+          <label>Test Name <span class="required">*</span></label>
+          <input type="text" name="name" required
+                 value="{{ test.name if test else '' }}"
+                 placeholder="e.g. Get User Profile"
+                 {% if test %}readonly{% endif %}>
+          {% if test %}
+          <div class="field-hint">Name is the unique identifier — edit other fields to update this test.</div>
+          {% endif %}
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea name="description" rows="2" placeholder="What does this test verify?">{{ test.description if test else '' }}</textarea>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>HTTP Method <span class="required">*</span></label>
+            <select name="method">
+              {% for m in ['GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS'] %}
+              <option value="{{ m }}" {% if test and test.method == m %}selected{% endif %}>{{ m }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>URL Type</label>
+            <select name="url_type">
+              <option value="">— none —</option>
+              {% for s in services %}
+              <option value="{{ s }}" {% if test and test.url_type == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+            <div class="field-hint">Service target from <code>urls.json</code></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Path <span class="required">*</span></label>
+          <input type="text" name="path" required
+                 value="{{ test.path if test else '' }}"
+                 placeholder="/api/v1/users/123">
+        </div>
+        <div class="field">
+          <label>Request Headers <span class="hint">(JSON)</span></label>
+          <textarea name="headers" rows="3" class="mono-input"
+                    placeholder='{"Authorization": "Bearer token"}'>{{ test.headers if test else '{}' }}</textarea>
+        </div>
+        <div class="field">
+          <label>Request Body <span class="hint">(JSON or raw)</span></label>
+          <textarea name="body" rows="4" class="mono-input"
+                    placeholder='{"key": "value"}'>{{ test.body if test else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="form-col">
+      <div class="form-section">
+        <h3 class="form-section-title">Assertions</h3>
+        <div class="field">
+          <label>Expected Status Code</label>
+          <input type="number" name="expected_status"
+                 value="{{ test.expected_status if test else 200 }}" min="100" max="599">
+        </div>
+        <div class="field">
+          <label>Expected Body Contains</label>
+          <input type="text" name="expected_body"
+                 value="{{ test.expected_body if test else '' }}"
+                 placeholder='e.g. "success": true'>
+        </div>
+        <div class="field">
+          <label>Custom Assertions <span class="hint">(JSON array)</span></label>
+          <textarea name="assertions" rows="4" class="mono-input"
+                    placeholder='[{"type":"response_contains","value":"ok"},{"type":"duration_lt","value":"500"}]'>{{ test.assertions if test else '[]' }}</textarea>
+          <div class="field-hint">Types: <code>response_contains</code> · <code>status_code</code> · <code>duration_lt</code></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3 class="form-section-title">Tags</h3>
+        <div class="field">
+          <input type="text" name="tags"
+                 value="{{ test.tags if test else '[]' }}"
+                 placeholder='["smoke","regression"]'>
+          <div class="field-hint">JSON array of strings</div>
+        </div>
+      </div>
+
+      <!-- hidden perf defaults so save handler always receives them -->
+      <input type="hidden" name="vus" value="{{ test.vus if test else 10 }}">
+      <input type="hidden" name="duration" value="{{ test.duration if test else 30 }}">
+      <input type="hidden" name="ramp_up" value="{{ test.ramp_up if test else 5 }}">
+
+      <div class="form-actions">
+        <a href="/tests/" class="btn">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          {% if test %}Save Changes{% else %}Save Test Case{% endif %}
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ test.name }} — Test Cases{% endblock %}
+{% block page_title %}{{ test.name }}{% endblock %}
+{% block topbar_actions %}
+  <a href="/tests/{{ test.id }}/edit" class="btn btn-sm">Edit</a>
+  <a href="/tests/" class="btn btn-sm">← Back</a>
+{% endblock %}
+
+{% block content %}
+<div class="detail-grid">
+  <div class="detail-main">
+    <div class="detail-card">
+      <div class="detail-meta-row">
+        <span class="badge badge-type-{{ test.test_type }}">{{ test.test_type }}</span>
+        <span class="method-badge method-{{ test.method.lower() }}">{{ test.method }}</span>
+        <code class="path-big">{{ test.path }}</code>
+      </div>
+      {% if test.description %}
+        <p class="detail-desc">{{ test.description }}</p>
+      {% endif %}
+
+      <div class="detail-props">
+        <div class="prop">
+          <span class="prop-label">Expected Status</span>
+          <span class="prop-value">{{ test.expected_status }}</span>
+        </div>
+        {% if test.test_type == 'performance' %}
+        <div class="prop">
+          <span class="prop-label">Virtual Users</span>
+          <span class="prop-value">{{ test.vus }}</span>
+        </div>
+        <div class="prop">
+          <span class="prop-label">Duration</span>
+          <span class="prop-value">{{ test.duration }}s</span>
+        </div>
+        <div class="prop">
+          <span class="prop-label">Ramp-up</span>
+          <span class="prop-value">{{ test.ramp_up }}s</span>
+        </div>
+        {% endif %}
+        <div class="prop">
+          <span class="prop-label">Updated</span>
+          <span class="prop-value mono-sm">{{ test.updated_at[:16].replace("T"," ") if test.updated_at else "—" }}</span>
+        </div>
+      </div>
+
+      {% if test.headers and test.headers != '{}' %}
+      <div class="code-block-label">Headers</div>
+      <pre class="code-block">{{ test.headers }}</pre>
+      {% endif %}
+
+      {% if test.body %}
+      <div class="code-block-label">Body</div>
+      <pre class="code-block">{{ test.body }}</pre>
+      {% endif %}
+
+      {% if test.assertions and test.assertions != '[]' %}
+      <div class="code-block-label">Custom Assertions</div>
+      <pre class="code-block">{{ test.assertions }}</pre>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="detail-side">
+    <div class="section-header">
+      <h3>Run History</h3>
+    </div>
+    {% if results %}
+    <div class="result-list">
+      {% for r in results %}
+      <div class="result-item result-{{ r.status }}">
+        <div class="result-top">
+          <span class="status-dot status-{{ r.status }}">{{ r.status }}</span>
+          <span class="mono-sm text-muted">{{ r.run_started[:16].replace("T"," ") if r.run_started else "" }}</span>
+        </div>
+        <div class="result-info">
+          <span class="text-muted">{{ r.duration_ms }}ms</span>
+          {% if r.status_code %}<span class="mono-sm">{{ r.status_code }}</span>{% endif %}
+        </div>
+        {% if r.p50_ms %}
+        <div class="perf-row">
+          <span>p50: {{ r.p50_ms }}ms</span>
+          <span>p95: {{ r.p95_ms }}ms</span>
+          <span>RPS: {{ r.rps }}</span>
+          <span>Err: {{ r.error_rate }}%</span>
+        </div>
+        {% endif %}
+        {% if r.error %}<div class="result-error">{{ r.error }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>No results yet. Include this test in a <a href="/runs/new">run</a>.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

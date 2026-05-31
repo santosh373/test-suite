@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Test Cases — API Test Suite{% endblock %}
+{% block page_title %}Test Cases{% endblock %}
+{% block topbar_actions %}
+  <a href="/tests/new" class="btn btn-primary">+ Create / Update</a>
+{% endblock %}
+
+{% block content %}
+<div class="filter-bar">
+  <span class="filter-count">{{ tests|length }} test{{ 's' if tests|length != 1 }}</span>
+</div>
+
+<div class="table-wrap">
+  {% if tests %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>URL Type</th>
+        <th>Method</th>
+        <th>Path</th>
+        <th>Expected Status</th>
+        <th>Updated</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for t in tests %}
+      <tr>
+        <td><a href="/tests/{{ t.id }}" class="link-text">{{ t.name }}</a></td>
+        <td><span class="tag">{{ t.url_type or "—" }}</span></td>
+        <td><span class="method-badge method-{{ t.method.lower() }}">{{ t.method }}</span></td>
+        <td><code class="path-code">{{ t.path }}</code></td>
+        <td class="text-muted">{{ t.expected_status }}</td>
+        <td class="text-muted mono-sm">{{ t.updated_at[:10] if t.updated_at else "—" }}</td>
+        <td class="action-cell">
+          <a href="/tests/{{ t.id }}" class="btn btn-sm">View</a>
+          <a href="/tests/{{ t.id }}/edit" class="btn btn-sm">Edit</a>
+          <form method="post" action="/tests/{{ t.id }}/delete" class="inline-form"
+                onsubmit="return confirm('Delete this test?')">
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">◇</div>
+    <p>No test cases yet. <a href="/tests/new">Create your first test →</a></p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}urls.json — API Test Suite{% endblock %}
+{% block page_title %}urls.json{% endblock %}
+{% block topbar_actions %}
+  <a href="/runs/new" class="btn btn-sm">← New Run</a>
+{% endblock %}
+
+{% block content %}
+{% if saved %}
+<div class="alert alert-ok" id="saved-banner">urls.json saved successfully.</div>
+{% endif %}
+
+<div class="file-editor-wrap">
+  <div class="file-editor-meta">
+    <span class="file-path-label">urls.json</span>
+    <span class="text-muted" style="font-size:12px">
+      JSON array of <code>{"name": "...", "base_url": "..."}</code> entries. Each name appears as a selectable target in the run form.
+    </span>
+  </div>
+  <form method="post" action="/urls/file" id="file-form">
+    <textarea
+      name="content"
+      id="code-editor"
+      class="file-editor-textarea"
+      spellcheck="false"
+      autocorrect="off"
+    >{{ content }}</textarea>
+    <div class="file-editor-actions">
+      <button type="submit" class="btn btn-primary" onclick="return validateJson()">Save</button>
+      <span class="text-muted" style="font-size:12px">Ctrl+S to save</span>
+      <span id="json-error" style="color:#f85149;font-size:12px;margin-left:8px"></span>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function validateJson() {
+  try {
+    JSON.parse(document.getElementById('code-editor').value);
+    document.getElementById('json-error').textContent = '';
+    return true;
+  } catch(e) {
+    document.getElementById('json-error').textContent = 'Invalid JSON: ' + e.message;
+    return false;
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    if (validateJson()) document.getElementById('file-form').submit();
+  }
+});
+
+document.getElementById('code-editor').addEventListener('keydown', function(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = this.selectionStart;
+    this.value = this.value.substring(0, s) + '  ' + this.value.substring(this.selectionEnd);
+    this.selectionStart = this.selectionEnd = s + 2;
+  }
+});
+
+{% if saved %}
+setTimeout(() => {
+  const b = document.getElementById('saved-banner');
+  if (b) { b.style.transition='opacity 0.5s'; b.style.opacity='0'; setTimeout(()=>b.remove(),500); }
+}, 3000);
+{% endif %}
+</script>
+{% endblock %}

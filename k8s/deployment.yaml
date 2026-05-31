@@ -1,0 +1,121 @@
+---
+# PersistentVolumeClaim for SQLite data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: api-test-suite-data
+  namespace: default
+  labels:
+    app: api-test-suite
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-test-suite
+  namespace: default
+  labels:
+    app: api-test-suite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-test-suite
+  strategy:
+    type: Recreate          # Recreate because SQLite PVC is ReadWriteOnce
+  template:
+    metadata:
+      labels:
+        app: api-test-suite
+    spec:
+      containers:
+        - name: api-test-suite
+          image: your-registry/api-test-suite:latest   # <-- replace with your image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: DB_PATH
+              value: /data/testsuitedb.sqlite
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: api-test-suite-data
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-test-suite
+  namespace: default
+  labels:
+    app: api-test-suite
+spec:
+  selector:
+    app: api-test-suite
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
+
+---
+# Ingress (adjust host + annotations for your ingress controller)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-test-suite
+  namespace: default
+  labels:
+    app: api-test-suite
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  rules:
+    - host: test-suite.your-domain.com    # <-- replace with your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-test-suite
+                port:
+                  name: http
+  # Uncomment to enable TLS:
+  # tls:
+  #   - hosts:
+  #       - test-suite.your-domain.com
+  #     secretName: api-test-suite-tls

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}testcases.py — API Test Suite{% endblock %}
+{% block page_title %}testcases.py{% endblock %}
+{% block topbar_actions %}
+  <a href="/tests/" class="btn btn-sm">← Test Cases</a>
+{% endblock %}
+
+{% block content %}
+
+{% if saved %}
+<div class="alert alert-ok" id="saved-banner">
+  File saved and test cases reloaded from <code>testcases.py</code>.
+</div>
+{% endif %}
+
+<div class="file-editor-wrap">
+  <div class="file-editor-meta">
+    <span class="file-path-label">testcases.py</span>
+    <span class="text-muted" style="font-size:12px">
+      Edit test cases below, then click <strong>Save &amp; Reload</strong> — the database will sync automatically.
+    </span>
+  </div>
+
+  <form method="post" action="/tests/file" id="file-form">
+    <textarea
+      name="content"
+      id="code-editor"
+      class="file-editor-textarea"
+      spellcheck="false"
+      autocorrect="off"
+      autocapitalize="off"
+    >{{ content }}</textarea>
+    <div class="file-editor-actions">
+      <button type="submit" class="btn btn-primary">Save &amp; Reload</button>
+      <span class="text-muted" style="font-size:12px">Ctrl+S to save</span>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Ctrl+S submits the form
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    document.getElementById('file-form').submit();
+  }
+});
+
+// Tab key inserts 4 spaces instead of moving focus
+document.getElementById('code-editor').addEventListener('keydown', function(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = this.selectionStart;
+    const end = this.selectionEnd;
+    this.value = this.value.substring(0, s) + '    ' + this.value.substring(end);
+    this.selectionStart = this.selectionEnd = s + 4;
+  }
+});
+
+// Auto-dismiss saved banner
+{% if saved %}
+setTimeout(() => {
+  const b = document.getElementById('saved-banner');
+  if (b) b.style.transition = 'opacity 0.5s', b.style.opacity = '0', setTimeout(() => b.remove(), 500);
+}, 3000);
+{% endif %}
+</script>
+{% endblock %}

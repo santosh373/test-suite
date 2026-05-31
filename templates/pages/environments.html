@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Environments — API Test Suite{% endblock %}
+{% block page_title %}Environments{% endblock %}
+
+{% block content %}
+<div class="env-layout">
+  <div class="env-list">
+    <div class="section-header">
+      <h2>Configured Environments</h2>
+    </div>
+    {% if envs %}
+    <div class="env-cards">
+      {% for env in envs %}
+      <div class="env-card env-type-{{ env.env_type }}">
+        <div class="env-top">
+          <div>
+            <div class="env-name">{{ env.name }}</div>
+            <code class="env-url">{{ env.base_url }}</code>
+          </div>
+          <span class="badge badge-env-{{ env.env_type }}">{{ env.env_type }}</span>
+        </div>
+        {% if env.headers and env.headers != '{}' %}
+          <pre class="env-headers">{{ env.headers }}</pre>
+        {% endif %}
+        <div class="env-actions">
+          <button class="btn btn-sm" onclick="openEditEnv({{ env.id }}, '{{ env.name }}', '{{ env.base_url }}', '{{ env.env_type }}', {{ env.headers|tojson }})">Edit</button>
+          <form method="post" action="/environments/{{ env.id }}/delete" class="inline-form"
+                onsubmit="return confirm('Delete environment {{ env.name }}?')">
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">◎</div>
+      <p>No environments yet. Add one using the form →</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="env-form-panel">
+    <div class="section-header">
+      <h2 id="form-panel-title">Add Environment</h2>
+    </div>
+    <form method="post" id="env-form" action="/environments/new" class="panel-form">
+      <div class="field">
+        <label>Name <span class="required">*</span></label>
+        <input type="text" name="name" id="env-name" required placeholder="e.g. Production">
+      </div>
+      <div class="field">
+        <label>Base URL <span class="required">*</span></label>
+        <input type="text" name="base_url" id="env-url" required placeholder="https://api.example.com">
+      </div>
+      <div class="field">
+        <label>Environment Type</label>
+        <select name="env_type" id="env-type">
+          <option value="dev">Development</option>
+          <option value="staging">Staging</option>
+          <option value="prod">Production</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Default Headers <span class="hint">(JSON)</span></label>
+        <textarea name="headers" id="env-headers" rows="4" class="mono-input" placeholder='{"Authorization": "Bearer token"}'>{}</textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn" onclick="resetEnvForm()" id="cancel-edit" style="display:none">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="env-submit-btn">Add Environment</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openEditEnv(id, name, url, type, headers) {
+  document.getElementById('form-panel-title').textContent = 'Edit Environment';
+  document.getElementById('env-form').action = '/environments/' + id + '/edit';
+  document.getElementById('env-name').value = name;
+  document.getElementById('env-url').value = url;
+  document.getElementById('env-type').value = type;
+  document.getElementById('env-headers').value = typeof headers === 'object' ? JSON.stringify(headers, null, 2) : headers;
+  document.getElementById('env-submit-btn').textContent = 'Save Changes';
+  document.getElementById('cancel-edit').style.display = '';
+  document.querySelector('.env-form-panel').scrollIntoView({behavior:'smooth'});
+}
+
+function resetEnvForm() {
+  document.getElementById('form-panel-title').textContent = 'Add Environment';
+  document.getElementById('env-form').action = '/environments/new';
+  document.getElementById('env-form').reset();
+  document.getElementById('env-headers').value = '{}';
+  document.getElementById('env-submit-btn').textContent = 'Add Environment';
+  document.getElementById('cancel-edit').style.display = 'none';
+}
+</script>
+{% endblock %}
